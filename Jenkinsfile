@@ -37,7 +37,6 @@ pipeline {
             steps {
                 echo "Pinging DeployShield gateway on port 5001 via Native HTTP..."
                 script {
-                    // Sahi JSON payload bina kisi escape ya formatting issue ke
                     def jsonPayload = """{
                         "namespace": "${env.NAMESPACE}",
                         "deployment_name": "${env.DEPLOYMENT_NAME}",
@@ -46,7 +45,6 @@ pipeline {
                         "phone_number": "${env.ALERT_PHONE}"
                     }"""
 
-                    // Groovy Native HTTP Request (Windows curl bypass)
                     def url = new URL(env.DEPLOY_SHIELD_URL)
                     def connection = (HttpURLConnection) url.openConnection()
                     connection.setRequestMethod("POST")
@@ -67,6 +65,8 @@ pipeline {
                         echo "Error Response: ${responseText}"
                         error("DeployShield rejected the request with status ${responseCode}")
                     }
-                }
-            }
-        }
+                } // Script block closed
+            } // Steps block closed
+        } // Stage block closed
+    } // Stages block closed
+} // Pipeline block closed
