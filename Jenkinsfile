@@ -18,19 +18,20 @@ pipeline {
 
         stage('Sync Cluster Config') {
             steps {
-                echo "Injecting valid Minikube authentication context..."
+                echo "Injecting Minikube context directly into Windows System Profile..."
+                // Yeh seedha us path par directory banayega jahan kubectl dhoond raha hai
                 bat '''
-                if not exist ".kube" mkdir .kube
-                copy "C:\\Users\\DELL\\.kube\\config" ".kube\\config"
+                if not exist "C:\\WINDOWS\\system32\\config\\systemprofile\\.kube" mkdir "C:\\WINDOWS\\system32\\config\\systemprofile\\.kube"
+                copy "C:\\Users\\DELL\\.kube\\config" "C:\\WINDOWS\\system32\\config\\systemprofile\\.kube\\config"
                 '''
             }
         }
 
         stage('Apply K8s Manifest') {
             steps {
-                echo "Applying manifest layout to cluster using explicit workspace config..."
-                // Yahan humne environment variable hata kar direct workspace config path explicitly provide kar diya hai
-                bat 'kubectl --kubeconfig="%WORKSPACE%\\.kube\\config" --context=minikube apply -f demo/app_good.yaml'
+                echo "Applying manifest layout to cluster..."
+                // Ab haan bina kisi flags ke normal command chalegi kyunki config sahi jagah pahonch gayi hai
+                bat 'kubectl apply -f demo/app_good.yaml'
             }
         }
 
