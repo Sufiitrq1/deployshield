@@ -1,3 +1,5 @@
+import groovy.json.JsonOutput
+
 pipeline {
     agent any
 
@@ -35,13 +37,29 @@ pipeline {
 
         stage('DeployShield Guard') {
             steps {
-                echo "Pinging DeployShield gateway on port 5001 via Inline PowerShell Web Request..."
+                echo "Pinging DeployShield gateway on port 5001 via Native PowerShell Base64/Secure JSON..."
                 script {
-                    // Windows Native Shell ke liye escaped payload mapping
-                    def jsonPayload = '{\\"namespace\\":\\"' + env.NAMESPACE + '\\",\\"deployment_name\\":\\"' + env.DEPLOYMENT_NAME + '\\",\\"image_tag\\":\\"latest\\",\\"smoke_test_url\\":\\"' + env.SMOKE_TEST_URL + '\\",\\"phone_number\\":\\"' + env.ALERT_PHONE + '\\"}'
+                    // Map map object to avoid syntax errors and ensure perfect data structural consistency
+                    def payloadMap = [
+                        namespace: env.NAMESPACE,
+                        deployment_name: env.DEPLOYMENT_NAME,
+                        image_tag: 'latest',
+                        smoke_test_url: env.SMOKE_TEST_URL,
+                        phone_number: env.ALERT_PHONE
+                    ]
                     
-                    // Native PowerShell call jo 422 aur Sandbox limits dono ko bypass karegi
-                    powershell "Invoke-RestMethod -Uri '${env.DEPLOY_SHIELD_URL}' -Method Post -ContentType 'application/json' -Body '${jsonPayload}'"
+                    // Generate dynamic valid clean JSON single-line string representation
+                    def rawJson = JsonOutput.toJson(payloadMap)
+                    
+                    // Base64 mapping stops Windows Shell from breaking, stripping, or eating quotes completely
+                    def base64Payload = rawJson.getBytes("UTF-8").encodeBase64().toString()
+                    
+                    // PowerShell decodes structural binary components perfectly before passing off the stream array
+                    powershell """
+                        \$jsonBytes = [System.Convert]::FromBase64String('${base64Payload}')
+                        \$jsonString = [System.Text.Encoding]::UTF8.GetString(\$jsonBytes)
+                        Invoke-RestMethod -Uri '${env.DEPLOY_SHIELD_URL}' -Method Post -ContentType 'application/json' -Body \$jsonString
+                    """
                 }
             }
         }
