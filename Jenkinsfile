@@ -10,6 +10,18 @@ pipeline {
     }
 
     stages {
+        stage('Free Port 5000') {
+            steps {
+                echo "Force clearing port 5000 via System privileges to prevent Access Denied..."
+                // Agar port pehle se khali ho toh pipeline break na ho, isliye catchError lagaya hai
+                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    bat '''
+                    for /f "tokens=5" %%a in ('netstat -aon ^| findstr :5000') do taskkill /F /PID %%a
+                    '''
+                }
+            }
+        }
+
         stage('Checkout Code') {
             steps {
                 checkout scm
@@ -29,7 +41,6 @@ pipeline {
         stage('Apply K8s Manifest') {
             steps {
                 echo "Applying manifest layout to cluster with strict network bypass..."
-                // Validation aur TLS bypass flags ke sath command trigger ki hai
                 bat 'kubectl apply -f demo/app_good.yaml --validate=false --insecure-skip-tls-verify=true'
             }
         }
