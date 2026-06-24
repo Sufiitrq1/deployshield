@@ -2,26 +2,15 @@ pipeline {
     agent any
 
     environment {
-        DEPLOY_SHIELD_URL = 'http://127.0.0.1:5000/v1/deploy/watch'
+        // Port 5000 ko badal kar 5001 kar diya hai
+        DEPLOY_SHIELD_URL = 'http://127.0.0.1:5001/v1/deploy/watch'
         DEPLOYMENT_NAME   = 'demo-app'
         NAMESPACE         = 'default'
-        SMOKE_TEST_URL    = 'http://localhost:8080/'
+        SMOKE_TEST_URL    = 'https://claude.ai/upgrade3'
         ALERT_PHONE       = '+923328848628'
     }
 
     stages {
-        stage('Free Port 5000') {
-            steps {
-                echo "Force clearing port 5000 via System privileges to prevent Access Denied..."
-                // Agar port pehle se khali ho toh pipeline break na ho, isliye catchError lagaya hai
-                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
-                    bat '''
-                    for /f "tokens=5" %%a in ('netstat -aon ^| findstr :5000') do taskkill /F /PID %%a
-                    '''
-                }
-            }
-        }
-
         stage('Checkout Code') {
             steps {
                 checkout scm
@@ -47,7 +36,7 @@ pipeline {
 
         stage('DeployShield Guard') {
             steps {
-                echo "Pinging DeployShield gateway on port 5000..."
+                echo "Pinging DeployShield gateway on port 5001..."
                 script {
                     def jsonPayload = """{
                         "namespace": "${env.NAMESPACE}",
