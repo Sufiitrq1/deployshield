@@ -35,15 +35,38 @@ pipeline {
 
         stage('DeployShield Guard') {
             steps {
-                echo "Pinging DeployShield gateway on port 5001..."
+                echo "Pinging DeployShield gateway on port 5001 via Native HTTP..."
                 script {
-                    // JSON payload ko ek single line string mein map kiya taake parse error na aaye
-                    def jsonPayload = '{"namespace":"' + env.NAMESPACE + '","deployment_name":"' + env.DEPLOYMENT_NAME + '","image_tag":"latest","smoke_test_url":"' + env.SMOKE_TEST_URL + '","phone_number":"' + env.ALERT_PHONE + '"}'
+                    // Sahi JSON payload bina kisi escape ya formatting issue ke
+                    def jsonPayload = """{
+                        "namespace": "${env.NAMESPACE}",
+                        "deployment_name": "${env.DEPLOYMENT_NAME}",
+                        "image_tag": "latest",
+                        "smoke_test_url": "${env.SMOKE_TEST_URL}",
+                        "phone_number": "${env.ALERT_PHONE}"
+                    }"""
 
-                    // Windows CMD/Batch ke liye internal quotes ko escape kiya
-                    bat "curl -s -X POST ${env.DEPLOY_SHIELD_URL} -H \"Content-Type: application/json\" -d \"${jsonPayload.replaceAll('"', '\\"')}\""
+                    // Groovy Native HTTP Request (Windows curl bypass)
+                    def url = new URL(env.DEPLOY_SHIELD_URL)
+                    def connection = (HttpURLConnection) url.openConnection()
+                    connection.setRequestMethod("POST")
+                    connection.setRequestProperty("Content-Type", "application/json; utf-8")
+                    connection.setDoOutput(true)
+
+                    connection.getOutputStream().withWriter("UTF-8") { writer ->
+                        writer.write(jsonPayload)
+                    }
+
+                    def responseCode = connection.getResponseCode()
+                    echo "DeployShield Response Code: ${responseCode}"
+                    
+                    if (responseCode >= 200 && responseCode < 300) {
+                        echo "Success: Gateway accepted the tracking payload."
+                    } else {
+                        def responseText = connection.getErrorStream()?.text ?: connection.getInputStream().text
+                        echo "Error Response: ${responseText}"
+                        error("DeployShield rejected the request with status ${responseCode}")
+                    }
                 }
             }
         }
-    }
-}
