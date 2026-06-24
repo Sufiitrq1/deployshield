@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Yeh URL target port 5001 par hona chahiye
         DEPLOY_SHIELD_URL = 'http://127.0.0.1:5001/v1/deploy/watch'
         DEPLOYMENT_NAME   = 'demo-app'
         NAMESPACE         = 'default'
@@ -38,16 +37,11 @@ pipeline {
             steps {
                 echo "Pinging DeployShield gateway on port 5001..."
                 script {
-                    def jsonPayload = """{
-                        "namespace": "${env.NAMESPACE}",
-                        "deployment_name": "${env.DEPLOYMENT_NAME}",
-                        "image_tag": "latest",
-                        "smoke_test_url": "${env.SMOKE_TEST_URL}",
-                        "phone_number": "${env.ALERT_PHONE}"
-                    }"""
+                    // JSON payload ko ek single line string mein map kiya taake parse error na aaye
+                    def jsonPayload = '{"namespace":"' + env.NAMESPACE + '","deployment_name":"' + env.DEPLOYMENT_NAME + '","image_tag":"latest","smoke_test_url":"' + env.SMOKE_TEST_URL + '","phone_number":"' + env.ALERT_PHONE + '"}'
 
-                    // Env variable se URL bypass kiya taake sahi port (5001) hit ho
-                    bat "curl -s -X POST ${env.DEPLOY_SHIELD_URL} -H \"Content-Type: application/json\" -d \"${jsonPayload.replaceAll('\n', '').replaceAll('"', '\\\"')}\""
+                    // Windows CMD/Batch ke liye internal quotes ko escape kiya
+                    bat "curl -s -X POST ${env.DEPLOY_SHIELD_URL} -H \"Content-Type: application/json\" -d \"${jsonPayload.replaceAll('"', '\\"')}\""
                 }
             }
         }
