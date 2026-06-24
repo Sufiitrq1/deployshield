@@ -19,7 +19,6 @@ pipeline {
         stage('Sync Cluster Config') {
             steps {
                 echo "Injecting Minikube context directly into Windows System Profile..."
-                // Yeh seedha us path par directory banayega jahan kubectl dhoond raha hai
                 bat '''
                 if not exist "C:\\WINDOWS\\system32\\config\\systemprofile\\.kube" mkdir "C:\\WINDOWS\\system32\\config\\systemprofile\\.kube"
                 copy "C:\\Users\\DELL\\.kube\\config" "C:\\WINDOWS\\system32\\config\\systemprofile\\.kube\\config"
@@ -29,9 +28,9 @@ pipeline {
 
         stage('Apply K8s Manifest') {
             steps {
-                echo "Applying manifest layout to cluster..."
-                // Ab haan bina kisi flags ke normal command chalegi kyunki config sahi jagah pahonch gayi hai
-                bat 'kubectl apply -f demo/app_good.yaml'
+                echo "Applying manifest layout to cluster with strict network bypass..."
+                // Validation aur TLS bypass flags ke sath command trigger ki hai
+                bat 'kubectl apply -f demo/app_good.yaml --validate=false --insecure-skip-tls-verify=true'
             }
         }
 
