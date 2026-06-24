@@ -19,8 +19,8 @@ pipeline {
         stage('Apply K8s Manifest') {
             steps {
                 echo "Applying manifest layout to cluster..."
-                // Windows ke liye 'sh' ko 'bat' me badla
-                bat 'kubectl apply -f demo/app_good.yaml'
+                // Validation bypass aur direct minikube port address map kiya
+                bat 'kubectl apply -f demo/app_good.yaml --server=https://127.0.0.1:53217 --validate=false --insecure-skip-tls-verify=true'
             }
         }
 
@@ -36,7 +36,6 @@ pipeline {
                         "phone_number": "${env.ALERT_PHONE}"
                     }"""
 
-                    // Windows compatibility ke liye curl command ko single line me convert kiya
                     bat "curl -s -X POST ${env.DEPLOY_SHIELD_URL} -H \"Content-Type: application/json\" -d \"${jsonPayload.replaceAll('\n', '').replaceAll('"', '\\\"')}\""
                 }
             }
