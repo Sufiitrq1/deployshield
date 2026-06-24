@@ -2,11 +2,11 @@ pipeline {
     agent any
 
     environment {
-        // Port 5000 ko badal kar 5001 kar diya hai
+        // Yeh URL target port 5001 par hona chahiye
         DEPLOY_SHIELD_URL = 'http://127.0.0.1:5001/v1/deploy/watch'
         DEPLOYMENT_NAME   = 'demo-app'
         NAMESPACE         = 'default'
-        SMOKE_TEST_URL    = 'https://claude.ai/upgrade3'
+        SMOKE_TEST_URL    = 'http://localhost:8080/'
         ALERT_PHONE       = '+923328848628'
     }
 
@@ -46,6 +46,7 @@ pipeline {
                         "phone_number": "${env.ALERT_PHONE}"
                     }"""
 
+                    // Env variable se URL bypass kiya taake sahi port (5001) hit ho
                     bat "curl -s -X POST ${env.DEPLOY_SHIELD_URL} -H \"Content-Type: application/json\" -d \"${jsonPayload.replaceAll('\n', '').replaceAll('"', '\\\"')}\""
                 }
             }
