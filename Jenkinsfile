@@ -16,11 +16,24 @@ pipeline {
             }
         }
 
-        stage('Apply K8s Manifest') {
+        stage('Sync Cluster Config') {
             steps {
-                echo "Applying manifest layout to cluster..."
-                // Validation bypass aur direct minikube port address map kiya
-                bat 'kubectl apply -f demo/app_good.yaml --server=https://127.0.0.1:53217 --validate=false --insecure-skip-tls-verify=true'
+                echo "Injecting valid Minikube authentication context..."
+                // Local config directory create karke user config copy kar rahe hain
+                bat '''
+                if not exist ".kube" mkdir .kube
+                copy "C:\\Users\\DELL\\.kube\\config" ".kube\\config"
+                '''
+            }
+        }
+
+        stage('Apply K8s Manifest') {
+            environment {
+                KUBECONFIG = "${WORKSPACE}\\.kube\\config"
+            }
+            steps {
+                echo "Applying manifest layout to cluster using active context..."
+                bat 'kubectl --context=minikube apply -f demo/app_good.yaml'
             }
         }
 
