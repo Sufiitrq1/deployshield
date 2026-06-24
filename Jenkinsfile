@@ -19,7 +19,6 @@ pipeline {
         stage('Sync Cluster Config') {
             steps {
                 echo "Injecting valid Minikube authentication context..."
-                // Local config directory create karke user config copy kar rahe hain
                 bat '''
                 if not exist ".kube" mkdir .kube
                 copy "C:\\Users\\DELL\\.kube\\config" ".kube\\config"
@@ -28,12 +27,10 @@ pipeline {
         }
 
         stage('Apply K8s Manifest') {
-            environment {
-                KUBECONFIG = "${WORKSPACE}\\.kube\\config"
-            }
             steps {
-                echo "Applying manifest layout to cluster using active context..."
-                bat 'kubectl --context=minikube apply -f demo/app_good.yaml'
+                echo "Applying manifest layout to cluster using explicit workspace config..."
+                // Yahan humne environment variable hata kar direct workspace config path explicitly provide kar diya hai
+                bat 'kubectl --kubeconfig="%WORKSPACE%\\.kube\\config" --context=minikube apply -f demo/app_good.yaml'
             }
         }
 
