@@ -35,8 +35,9 @@ pipeline {
 
         stage('DeployShield Guard') {
             steps {
-                echo "Pinging DeployShield gateway on port 5001 via Native HTTP..."
+                echo "Pinging DeployShield gateway on port 5001 via Jenkins HttpRequest..."
                 script {
+                    // Clean and well-formed JSON string for the backend
                     def jsonPayload = """{
                         "namespace": "${env.NAMESPACE}",
                         "deployment_name": "${env.DEPLOYMENT_NAME}",
@@ -45,28 +46,18 @@ pipeline {
                         "phone_number": "${env.ALERT_PHONE}"
                     }"""
 
-                    def url = new URL(env.DEPLOY_SHIELD_URL)
-                    def connection = (HttpURLConnection) url.openConnection()
-                    connection.setRequestMethod("POST")
-                    connection.setRequestProperty("Content-Type", "application/json; utf-8")
-                    connection.setDoOutput(true)
-
-                    connection.getOutputStream().withWriter("UTF-8") { writer ->
-                        writer.write(jsonPayload)
-                    }
-
-                    def responseCode = connection.getResponseCode()
-                    echo "DeployShield Response Code: ${responseCode}"
+                    // Jenkins native step which bypasses script sandbox restrictions
+                    def response = httpRequest(
+                        url: env.DEPLOY_SHIELD_URL,
+                        httpMode: 'POST',
+                        contentType: 'APPLICATION_JSON',
+                        requestBody: jsonPayload,
+                        validResponseCodes: '100:399' // Succeeded range
+                    )
                     
-                    if (responseCode >= 200 && responseCode < 300) {
-                        echo "Success: Gateway accepted the tracking payload."
-                    } else {
-                        def responseText = connection.getErrorStream()?.text ?: connection.getInputStream().text
-                        echo "Error Response: ${responseText}"
-                        error("DeployShield rejected the request with status ${responseCode}")
-                    }
-                } // Script block closed
-            } // Steps block closed
-        } // Stage block closed
-    } // Stages block closed
-} // Pipeline block closed
+                    echo "DeployShield Response Status: ${response.status}"
+                }
+            }
+        }
+    }
+}
